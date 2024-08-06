@@ -4,7 +4,12 @@ Let's classify some sequences.
 
 ## Setup
 
-1. Install `uv`, a python virtual environment manager (think Conda but infinitely better): `curl -LsSf https://astral.sh/uv/install.sh | sh`
+1. Install `uv`, a python virtual environment manager (think Conda but infinitely better):
+
+    ```bash
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+
 2. Clone repo.
 3. `cd` into repo and create virtual environment: `uv venv`
 4. Activate virtual environment: `source .venv/bin/activate`
