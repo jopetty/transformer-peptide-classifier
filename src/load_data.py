@@ -1,25 +1,20 @@
 """Load and process data."""
 
-from enum import StrEnum
 import logging
+from enum import StrEnum
+from functools import partial
 from random import randint
-from typing import Sequence
-from functools import partial, reduce
-import os
 
 import fire
 import pyrootutils
 import torch
-from datasets import load_dataset, DatasetDict
+from datasets import DatasetDict, load_dataset
 from dotenv import load_dotenv
-from tqdm import tqdm
 from tokenizers import Tokenizer
 from tokenizers.models import WordLevel
-from tokenizers.pre_tokenizers import Whitespace
 from tokenizers.processors import TemplateProcessing
-from transformers import PreTrainedTokenizerFast
 from torch.nn import functional as F  # noqa: N812
-
+from transformers import PreTrainedTokenizerFast
 from utils.utils import get_logger, set_all_seeds
 
 logging.basicConfig(
@@ -38,6 +33,7 @@ load_dotenv()
 
 
 AMINO_ACID_VOCAB = "ARNDCEQGHILKMFPSTWYV"
+
 
 class SpecialTokens(StrEnum):
     """Special tokens for tokenizer."""
@@ -119,12 +115,13 @@ class PeptideTokenizer(PreTrainedTokenizerFast):
 
         self.add_tokens(list(AMINO_ACID_VOCAB))
 
+
 def preprocess(
     examples: DatasetDict,
     tokenizer: PeptideTokenizer,
 ):
     return tokenizer(
-        examples["HLA_SEQ"], 
+        examples["HLA_SEQ"],
         examples["PEPTIDE_SEQ"],
         return_token_type_ids=False,
         return_attention_mask=False,
@@ -138,20 +135,19 @@ def collate_fn(data):
         labels.append(torch.tensor(item["LABEL"], dtype=torch.float32))
         input_ids.append(torch.tensor(item["input_ids"], dtype=torch.int32))
 
-    
     # Pad input_ids if necessary
     seq_len = 0
     for item in input_ids:
         seq_len = max(seq_len, item.shape[0])
-    
+
     for i in range(len(input_ids)):
         if input_ids[i].shape[0] < seq_len:
             input_ids[i] = F.pad(
-                input_ids[i], 
-                (0, seq_len - input_ids[i].shape[0]), 
-                value=SpecialTokens.EOS.index
+                input_ids[i],
+                (0, seq_len - input_ids[i].shape[0]),
+                value=SpecialTokens.EOS.index,
             )
-    
+
     labels = torch.stack(labels, dim=0).unsqueeze(1)
     input_ids = torch.stack(input_ids, dim=0)
 
@@ -166,20 +162,19 @@ def get_dataset(
     sample_ratio: float = 1.0,
     filename: str = "seqs.txt",
 ):
-
     set_all_seeds(seed)
 
     sample_ratio = min(1.0, max(0.0, sample_ratio))
 
     log.info(f"Loading dataset from {filename}")
     dataset = load_dataset(
-        "csv", data_files=f"{PROJECT_ROOT}/data/{filename}", split="train")
-
-    dataset = (
-        dataset.select(range(int(sample_ratio * len(dataset))))
-        .train_test_split(test_size=0.2)
+        "csv", data_files=f"{PROJECT_ROOT}/data/{filename}", split="train"
     )
-    
+
+    dataset = dataset.select(range(int(sample_ratio * len(dataset)))).train_test_split(
+        test_size=0.2
+    )
+
     tokenizer = PeptideTokenizer()
 
     preprocess_fn = partial(
@@ -193,6 +188,7 @@ def get_dataset(
     )
 
     return dataset
+
 
 if __name__ == "__main__":
     fire.Fire(get_dataset)

@@ -3,15 +3,17 @@
 import logging
 from random import randint
 
-import torch
 import fire
 import pyrootutils
+import torch
 from accelerate import Accelerator
 from dotenv import load_dotenv
 from load_data import PeptideTokenizer, collate_fn, get_dataset
-from model import TransformerPeptideClassifier
-from model import SRNPeptideClassifier
-from model import LSTMPeptideClassifier
+from model import (
+    LSTMPeptideClassifier,
+    SRNPeptideClassifier,
+    TransformerPeptideClassifier,
+)
 from torch import optim
 from torch.nn import functional as F  # noqa: N812
 from torch.utils.data import DataLoader
@@ -36,7 +38,6 @@ load_dotenv()
 
 def main(
     seed: int = randint(0, 2**32 - 1),
-
     # Model parameters
     model_type: str = "transformer",
     num_layers: int = 6,
@@ -45,16 +46,13 @@ def main(
     dim_feedforward: int = 2048,
     dropout: float = 0.1,
     pooling_dimension: int = 1,
-
     input_size: int = 512,
     hidden_size: int = 2048,
     bidirectional: bool = False,
-
     # Training parameters
     batch_size: int = 4,
     dataset_prop: float = 1.0,
     base_lr: float = 1e-4,
-
     # Dataset parameters
     data_file: str = "seqs.txt",
 ):
@@ -106,16 +104,12 @@ def main(
     log.info(f"Number of parameters: {model.num_parameters}")
 
     train_dataloader = DataLoader(
-        dataset["train"], 
-        batch_size=batch_size, 
-        shuffle=True,
-        collate_fn=collate_fn)
+        dataset["train"], batch_size=batch_size, shuffle=True, collate_fn=collate_fn
+    )
     val_dataloader = DataLoader(
-        dataset["test"], 
-        batch_size=batch_size, 
-        shuffle=False,
-        collate_fn=collate_fn)
-    
+        dataset["test"], batch_size=batch_size, shuffle=False, collate_fn=collate_fn
+    )
+
     num_steps = len(train_dataloader)
 
     optimizer = optim.AdamW(model.parameters(), lr=base_lr)
@@ -125,8 +119,9 @@ def main(
     log.info(accelerator.state)
 
     model, optimizer, scheduler, train_dataloader, val_dataloader = accelerator.prepare(
-        model, optimizer, scheduler, train_dataloader, val_dataloader)
-    
+        model, optimizer, scheduler, train_dataloader, val_dataloader
+    )
+
     metrics = {
         "binary_accuracy": BinaryAccuracy(),
         "binary_f1": BinaryF1Score(),
@@ -164,7 +159,7 @@ def main(
     print("Mean training f1: ", metrics["binary_f1"].compute().item())
     for metric in metrics.values():
         metric.reset()
-    
+
     model.eval()
     for batch in tqdm(val_dataloader):
         inputs = batch["input_ids"]
@@ -181,6 +176,7 @@ def main(
 
     print("Mean validation accuracy: ", metrics["binary_accuracy"].compute().item())
     print("Mean validation f1: ", metrics["binary_f1"].compute().item())
+
 
 if __name__ == "__main__":
     fire.Fire(main)
