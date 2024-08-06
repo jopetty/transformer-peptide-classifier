@@ -1,6 +1,6 @@
 # transformer-peptide-classifier
 
-A template for developing an ML experimentation framework.
+Let's classify some sequences.
 
 ## Setup
 
