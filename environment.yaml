@@ -1,4 +1,4 @@
-name: PROJECT_NAME
+name: transformer-peptide-classifier
 
 dependencies:
   - python=3.12
