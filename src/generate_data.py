@@ -42,8 +42,10 @@ def generate_data(
 
         hla_seq = "".join(choices(vocab, k=hla_seq_len_i))
         peptide_seq = "".join(choices(vocab, k=peptide_seq_len_i))
-        label = 1 if hla_seq[0] == peptide_seq[0] else 0
-        # label = 1 if "A" in peptide_seq else 0
+
+        # Figure out some silly labels for testing
+        # label = 1 if hla_seq[0] == peptide_seq[0] else 0
+        label = 1 if "A" in peptide_seq else 0
 
         hla_seqs.append(hla_seq)
         peptide_seqs.append(peptide_seq)
