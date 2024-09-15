@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from load_data import PeptideTokenizer, collate_fn, get_dataset
 from model import (
     LSTMPeptideClassifier,
+    Mamba2PeptideClassifier,
     SRNPeptideClassifier,
     TransformerPeptideClassifier,
 )
@@ -63,9 +64,7 @@ def main(
 
     log.info(dataset)
 
-    # print(dataset["train"][0])
-
-    model: TransformerPeptideClassifier | SRNPeptideClassifier
+    model: TransformerPeptideClassifier | SRNPeptideClassifier | Mamba2PeptideClassifier
 
     if model_type == "transformer":
         model = TransformerPeptideClassifier(
@@ -97,17 +96,40 @@ def main(
             bidirectional=bidirectional,
             pooling_dimension=pooling_dimension,
         )
+    elif model_type == "mamba2":
+        model = Mamba2PeptideClassifier(
+            d_model=512,
+            n_layer=num_layers,  # number of Mamba-2 layers in the language model
+            d_state=128,  # state dimension (N)
+            d_conv=4,  # convolution kernel size
+            expand=2,  # expansion factor (E)
+            headdim=64,  # head dimension (P)
+            chunk_size=64,  # matrix partition size (Q)
+            vocab_size=len(tokenizer),
+            pad_vocab_size_multiple=16,
+        )
     else:
         raise ValueError(f"Unknown model type: {model_type}")
 
     log.info(model)
     log.info(f"Number of parameters: {model.num_parameters}")
 
+    if model_type == "mamba2":
+        padded_collate_rn = lambda data: collate_fn(data, seq_len_multiple=64)  # noqa: E731
+    else:
+        padded_collate_rn = collate_fn
+
     train_dataloader = DataLoader(
-        dataset["train"], batch_size=batch_size, shuffle=True, collate_fn=collate_fn
+        dataset["train"],
+        batch_size=batch_size,
+        shuffle=True,
+        collate_fn=padded_collate_rn,
     )
     val_dataloader = DataLoader(
-        dataset["test"], batch_size=batch_size, shuffle=False, collate_fn=collate_fn
+        dataset["test"],
+        batch_size=batch_size,
+        shuffle=False,
+        collate_fn=padded_collate_rn,
     )
 
     num_steps = len(train_dataloader)

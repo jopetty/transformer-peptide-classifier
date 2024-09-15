@@ -1,6 +1,7 @@
 """Load and process data."""
 
 import logging
+import math
 from enum import StrEnum
 from functools import partial
 from random import randint
@@ -128,7 +129,7 @@ def preprocess(
     )
 
 
-def collate_fn(data):
+def collate_fn(data, seq_len_multiple: int | None = None):
     labels = []
     input_ids = []
     for item in data:
@@ -139,6 +140,15 @@ def collate_fn(data):
     seq_len = 0
     for item in input_ids:
         seq_len = max(seq_len, item.shape[0])
+        # Ensure that the sequence length is a multiple of seq_len_multiple
+
+    if seq_len_multiple is not None:
+        # print("div:", seq_len // seq_len_multiple)
+        # print("ceil:", math.ceil(seq_len / seq_len_multiple))
+        seq_len = math.ceil(seq_len / seq_len_multiple) * seq_len_multiple
+
+    # print("seq_len:", seq_len)
+    # print("seq_len_multiple:", seq_len_multiple)
 
     for i in range(len(input_ids)):
         if input_ids[i].shape[0] < seq_len:
@@ -150,6 +160,9 @@ def collate_fn(data):
 
     labels = torch.stack(labels, dim=0).unsqueeze(1)
     input_ids = torch.stack(input_ids, dim=0)
+
+    # print(labels.shape, input_ids.shape)
+    # raise SystemExit
 
     return {
         "labels": labels,

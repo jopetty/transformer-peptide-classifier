@@ -24,7 +24,8 @@ dependencies = [
     "tokenizers",
     "transformers",
     "torcheval",
-    "torchtune",
+    # "torchtune",
+    "einops",
 ]
 
 [project.optional-dependencies]

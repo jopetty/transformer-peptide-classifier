@@ -4,6 +4,7 @@ import math
 
 # from torchtune import modules as tt_modules
 import torch
+from mamba2 import InferenceCache, Mamba2, Mamba2Config, RMSNorm
 from torch import nn
 
 
@@ -284,5 +285,119 @@ class LSTMPeptideClassifier(nn.Module):
 
         x, _ = self.lstm(input=x, hx=(h, c))
         x = x.mean(dim=self.pooling_dimension)
+        x = self.classifier(x)
+        return x
+
+
+class Mamba2PeptideClassifier(nn.Module):
+    @property
+    def d_model(self) -> int:
+        return self._d_model
+
+    @property
+    def n_layer(self) -> int:
+        return self._n_layer
+
+    @property
+    def d_state(self) -> int:
+        return self._d_state
+
+    @property
+    def d_conv(self) -> int:
+        return self._d_conv
+
+    @property
+    def expand(self) -> int:
+        return self._expand
+
+    @property
+    def headdim(self) -> int:
+        return self._headdim
+
+    @property
+    def chunk_size(self) -> int:
+        return self._chunk_size
+
+    @property
+    def vocab_size(self) -> int:
+        return self._vocab_size
+
+    @property
+    def pad_vocab_size_multiple(self) -> int:
+        return self._pad_vocab_size_multiple
+
+    @property
+    def num_parameters(self) -> int:
+        return sum(p.numel() for p in self.parameters())
+
+    def __init__(
+        self,
+        d_model: int,  # model dimension (D)
+        n_layer: int = 24,  # number of Mamba-2 layers in the language model
+        d_state: int = 128,  # state dimension (N)
+        d_conv: int = 4,  # convolution kernel size
+        expand: int = 2,  # expansion factor (E)
+        headdim: int = 64,  # head dimension (P)
+        chunk_size: int = 64,  # matrix partition size (Q)
+        vocab_size: int = 50277,
+        pad_vocab_size_multiple: int = 16,
+    ):
+        super().__init__()
+
+        self._d_model = d_model
+        self._n_layer = n_layer
+        self._d_state = d_state
+        self._d_conv = d_conv
+        self._expand = expand
+        self._headdim = headdim
+        self._chunk_size = chunk_size
+        self._vocab_size = vocab_size
+        self._pad_vocab_size_multiple = pad_vocab_size_multiple
+
+        mamba2_cfg = Mamba2Config(
+            d_model=d_model,
+            n_layer=n_layer,
+            d_state=d_state,
+            d_conv=d_conv,
+            expand=expand,
+            headdim=headdim,
+            chunk_size=chunk_size,
+            vocab_size=vocab_size,
+            pad_vocab_size_multiple=pad_vocab_size_multiple,
+        )
+
+        self.backbone = nn.ModuleDict(
+            dict(
+                embedding=nn.Embedding(mamba2_cfg.vocab_size, mamba2_cfg.d_model),
+                layers=nn.ModuleList(
+                    [
+                        nn.ModuleDict(
+                            dict(
+                                mixer=Mamba2(mamba2_cfg),
+                                norm=RMSNorm(mamba2_cfg.d_model),
+                            )
+                        )
+                        for _ in range(mamba2_cfg.n_layer)
+                    ]
+                ),
+                norm_f=RMSNorm(mamba2_cfg.d_model),
+            )
+        )
+
+        self.classifier = nn.Linear(d_model, 2)
+
+    def forward(self, x: torch.Tensor, h: list[InferenceCache] | None = None):
+        # print(x.shape)
+
+        if h is None:
+            h = [None for _ in range(self.n_layer)]
+
+        x = self.backbone.embedding(x)
+        for i, layer in enumerate(self.backbone.layers):
+            y, h[i] = layer.mixer(layer.norm(x), h[i])
+            x = y + x
+
+        x = self.backbone.norm_f(x)
+        x = x.mean(dim=1)
         x = self.classifier(x)
         return x
