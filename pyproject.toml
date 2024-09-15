@@ -1,7 +1,7 @@
 [project]
 name = "transformer-peptide-classifier"
 version = "0.0.1"
-description = "PROJECT_DESCRIPTION"
+description = "Demo of NN peptide classifiers"
 readme = "README.md"
 requires-python = ">= 3.12"
 license = { file = "LICENSE" }
@@ -24,7 +24,6 @@ dependencies = [
     "tokenizers",
     "transformers",
     "torcheval",
-    # "torchtune",
     "einops",
 ]
 
