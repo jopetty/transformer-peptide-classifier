@@ -130,3 +130,5 @@ dmypy.json
 
 # data files
 data/*.txt
+
+.ruff_cache/
