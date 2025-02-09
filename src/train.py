@@ -50,6 +50,7 @@ def main(
     input_size: int = 512,
     hidden_size: int = 2048,
     bidirectional: bool = False,
+    chunk_size: int = 64,
     # Training parameters
     batch_size: int = 4,
     dataset_prop: float = 1.0,
@@ -104,7 +105,7 @@ def main(
             d_conv=4,  # convolution kernel size
             expand=2,  # expansion factor (E)
             headdim=64,  # head dimension (P)
-            chunk_size=64,  # matrix partition size (Q)
+            chunk_size=chunk_size,  # matrix partition size (Q)
             vocab_size=len(tokenizer),
             pad_vocab_size_multiple=16,
         )
@@ -115,7 +116,8 @@ def main(
     log.info(f"Number of parameters: {model.num_parameters}")
 
     if model_type == "mamba2":
-        padded_collate_rn = lambda data: collate_fn(data, seq_len_multiple=64)  # noqa: E731
+        # Pretty sure this is required my mamba2
+        padded_collate_rn = lambda data: collate_fn(data, seq_len_multiple=chunk_size)  # noqa: E731
     else:
         padded_collate_rn = collate_fn
 

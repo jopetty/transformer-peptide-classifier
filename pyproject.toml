@@ -3,7 +3,7 @@ name = "transformer-peptide-classifier"
 version = "0.0.1"
 description = "Demo of NN peptide classifiers"
 readme = "README.md"
-requires-python = ">= 3.12"
+requires-python = ">= 3.12, < 3.13"
 license = { file = "LICENSE" }
 authors = [
     { name = "Jackson Petty", email = "research@jacksonpetty.org" }
