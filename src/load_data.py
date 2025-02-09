@@ -19,7 +19,7 @@ from transformers import PreTrainedTokenizerFast
 from utils.utils import get_logger, set_all_seeds
 
 logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+    format="%(asctime) s - %(levelname)s - %(name)s - %(message)s",
     datefmt="%Y-%d-%m %H:%M:%S",
     level=logging.INFO,
 )
@@ -128,6 +128,20 @@ def preprocess(
         return_attention_mask=False,
     )
 
+    # Blossom Encoding Pseudo code
+    # hla_seq = []
+    # pep_seq = []
+    # for hla in examples["HLA_SEQ"]:  # iterating through each letter
+    #     hla_seq.append(blossom_dict[hla])
+
+    # for pep in .....
+
+    # # turn hla_seq into a pytorch tensor
+    # hla_seq = torch.tensor(hla_seq)
+    # pep_seq = torch.tensor(pep_seq)
+    # conact_seq = torch.cat((hla_seq, pep_seq), dim=1)
+    # return concat_seq
+
 
 def collate_fn(data, seq_len_multiple: int | None = None):
     labels = []
@@ -199,6 +213,9 @@ def get_dataset(
         batched=True,
         remove_columns=["HLA_SEQ", "PEPTIDE_SEQ"],
     )
+
+    # Print out the vocabulary dictionary from the tokenzier object
+    print(tokenizer._tokenizer.get_vocab())
 
     return dataset
 
